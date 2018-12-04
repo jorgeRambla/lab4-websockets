@@ -5,7 +5,6 @@ import org.glassfish.tyrus.client.ClientManager;
 import org.glassfish.tyrus.server.Server;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import websockets.web.ElizaServerEndpoint;
 
@@ -56,16 +55,19 @@ public class ElizaServerTest {
 	}
 
 	@Test(timeout = 1000)
-	//@Ignore
 	public void onChat() throws DeploymentException, IOException, URISyntaxException, InterruptedException {
-		// COMPLETE ME!! //TODO:
+		CountDownLatch latch = new CountDownLatch(4);
 		List<String> list = new ArrayList<>();
 		ClientEndpointConfig configuration = ClientEndpointConfig.Builder.create().build();
 		ClientManager client = ClientManager.createClient();
-		client.connectToServer(new ElizaEndpointToComplete(list), configuration, new URI("ws://localhost:8025/websockets/eliza"));
-		// COMPLETE ME!! //TODO:
-		// COMPLETE ME!! //TODO:
-		// COMPLETE ME!! //TODO:
+		Session session = client.connectToServer(new ElizaEndpointToComplete(list, latch), configuration, new URI("ws://localhost:8025/websockets/eliza"));
+		// Ponemos Session para poder hacer un getAsyncRemote().sendText()
+		// Le Pasamos el latch para que lo pueda usar en OnMessage()
+		session.getAsyncRemote().sendText("always");
+		latch.await();
+		assertEquals(4, list.size());
+		// Comprobamos que la respuesta es la correcta. Vease Eliza.java
+        assertEquals("Can you think of a specific example?", list.get(3));
 	}
 
 	@After
@@ -92,18 +94,17 @@ public class ElizaServerTest {
     }
 
     private static class ElizaEndpointToComplete extends Endpoint {
+		// Lo hacemos como ElizaOnOpenMessageHandler
+		private final List<String> list;
+		private final CountDownLatch latch;
 
-        private final List<String> list;
-
-        ElizaEndpointToComplete(List<String> list) {
-            this.list = list;
+        ElizaEndpointToComplete(List<String> list, CountDownLatch latch) {
+			this.list = list;
+			this.latch = latch;
         }
 
         @Override
         public void onOpen(Session session, EndpointConfig config) {
-
-            // COMPLETE ME!!! //TODO:
-
             session.addMessageHandler(new ElizaMessageHandlerToComplete());
         }
 
@@ -112,7 +113,7 @@ public class ElizaServerTest {
             @Override
             public void onMessage(String message) {
                 list.add(message);
-                // COMPLETE ME!!! //TODO:
+				latch.countDown();
             }
         }
     }
