@@ -6,6 +6,7 @@ build/
 /bin/
 /.settings/
 .project
+.vscode/
 
 # Ignore Gradle GUI config
 gradle-app.setting
